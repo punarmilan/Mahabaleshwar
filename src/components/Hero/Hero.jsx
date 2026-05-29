@@ -1,0 +1,139 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './Hero.css';
+import bg1 from '../../assets/hillstationhome (1).jpg';
+import bg2 from '../../assets/hillstationhome (2).jpg';
+import bg3 from '../../assets/hillstationhome (3).jpg';
+import bg4 from '../../assets/hillstationhome (4).jpg';
+
+const Hero = () => {
+  const images = [bg1, bg2, bg3, bg4];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [hotels, setHotels] = useState([]);
+  const [selectedHotel, setSelectedHotel] = useState('');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
+  const [guests, setGuests] = useState('1');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch registered hotels
+    const fetchHotels = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/properties/all');
+        const data = await response.json();
+        if (response.ok) {
+          setHotels(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch hotels:', err);
+      }
+    };
+    fetchHotels();
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  const getTodayDateString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleSearch = () => {
+    if (selectedHotel) {
+      const queryParams = new URLSearchParams();
+      if (checkIn) queryParams.append('checkIn', checkIn);
+      if (checkOut) queryParams.append('checkOut', checkOut);
+      if (guests) queryParams.append('guests', guests);
+      
+      const queryString = queryParams.toString();
+      navigate(`/property/${selectedHotel}${queryString ? `?${queryString}` : ''}`);
+    } else {
+      alert('Please select a hotel to search.');
+    }
+  };
+
+  return (
+    <section className="hero" id="home">
+      <div className="hero-background">
+        {images.map((img, index) => (
+          <img 
+            key={index}
+            src={img} 
+            alt={`Hill Station ${index + 1}`} 
+            className={`hero-img ${index === currentImageIndex ? 'active' : ''}`}
+          />
+        ))}
+        <div className="hero-overlay"></div>
+      </div>
+      
+      <div className="hero-content fade-in">
+        <span className="hero-tagline">Experience the Serenity of the Summits</span>
+        <h1>Your Luxury Escape <br /> Above the Clouds</h1>
+        <p>Book exclusive hotels, private villas, and boutique cabins in the most breathtaking hill stations.</p>
+        
+        <div className="search-bar-container glass-morphism">
+          <div className="search-field">
+            <label>Hotel</label>
+            <select 
+              className="search-select" 
+              value={selectedHotel} 
+              onChange={(e) => setSelectedHotel(e.target.value)}
+            >
+              <option value="">Select Hotel</option>
+              {hotels.map(hotel => (
+                <option key={hotel._id} value={hotel._id}>{hotel.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="search-field">
+            <label>Check-in</label>
+            <input 
+              type="date" 
+              className="search-input" 
+              value={checkIn}
+              min={getTodayDateString()}
+              onChange={(e) => {
+                setCheckIn(e.target.value);
+                if (checkOut && e.target.value > checkOut) {
+                  setCheckOut('');
+                }
+              }}
+            />
+          </div>
+          <div className="search-field">
+            <label>Check-out</label>
+            <input 
+              type="date" 
+              className="search-input" 
+              value={checkOut}
+              min={checkIn || getTodayDateString()}
+              onChange={(e) => setCheckOut(e.target.value)}
+            />
+          </div>
+          <div className="search-field">
+            <label>Guests</label>
+            <input 
+              type="number" 
+              min="1" 
+              placeholder="Add guests" 
+              className="search-input" 
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+            />
+          </div>
+          <button className="btn-primary search-btn" onClick={handleSearch}>Search</button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;

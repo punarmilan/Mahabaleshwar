@@ -1,0 +1,151 @@
+.admin-dashboard {
+  display: flex;
+  min-height: 100vh;
+  padding-top: 0;
+  background: var(--bg-color);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+}
+
+.admin-sidebar {
+  width: 250px;
+  background: var(--primary-color);
+  padding: 40px 20px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.admin-sidebar h2 {
+  margin-bottom: 30px;
+  font-family: var(--font-heading);
+}
+
+.admin-sidebar button {
+  padding: 12px 20px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: left;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.admin-sidebar button.active {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.admin-content {
+  flex: 1;
+  padding: 40px;
+}
+
+.data-table {
+  padding: 30px;
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 15px;
+  border-bottom: 2px solid var(--glass-border);
+  color: var(--primary-color);
+  font-family: var(--font-heading);
+}
+
+td {
+  padding: 15px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+tr:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.admin-content button {
+  padding: 6px 12px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-approve {
+  background: #28a745 !important;
+}
+
+.btn-reject {
+  background: #dc3545 !important;
+}
+
+.btn-edit {
+  background: var(--secondary-color) !important;
+  color: var(--primary-color) !important;
+}
+
+.placeholder-msg {
+  text-align: center;
+  padding: 100px;
+  color: var(--text-secondary);
+}
+.user-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.user-cell strong {
+  color: var(--primary-color);
+}
+.user-cell span {
+  font-size: 0.8rem;
+  color: #666;
+}
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.status-cell small {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
