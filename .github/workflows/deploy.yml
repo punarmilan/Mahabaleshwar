@@ -11,247 +11,127 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Code checkout ──────────────────────────────────────────────────
+      # ── 1. Checkout ───────────────────────────────────────────────────────
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # ── 2. Node setup ─────────────────────────────────────────────────────
+      # ── 2. Node.js ────────────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
-      # ── 3. Frontend build ─────────────────────────────────────────────────
+      # ── 3. Frontend Build ─────────────────────────────────────────────────
       - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          npm install
+        working-directory: frontend
+        run: npm install
 
       - name: Build Frontend
-        run: |
-          cd frontend
-          VITE_API_URL=https://api.lonavala.fun npm run build
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.lonavala.fun
 
-      # ── 4. Backend package ────────────────────────────────────────────────
+      # ── 4. Package Backend ────────────────────────────────────────────────
       - name: Package Backend
         run: |
-          tar -czf backend.tar.gz -C backend \
-            --exclude=node_modules \
-            --exclude=.env \
-            --exclude='*.log' \
-            .
+          tar -czf backend.tar.gz \
+            --exclude=backend/node_modules \
+            --exclude=backend/.env \
+            --exclude=backend/*.log \
+            backend/
 
-      # ── 5. SSH setup ──────────────────────────────────────────────────────
-      - name: Setup SSH Key
+      # ── 5. SSH Setup ──────────────────────────────────────────────────────
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      # ── 6. VPS first-time setup (idempotent - safe to run every deploy) ──
-      - name: VPS Setup (Node, PM2, Nginx, Certbot)
+      # ── 6. VPS - Ensure directories and tools exist ───────────────────────
+      - name: VPS Prerequisites
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             set -e
+            mkdir -p /var/www/lonavala.fun/frontend /var/www/lonavala.fun/backend
+            command -v node || (curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs)
+            command -v pm2 || npm install -g pm2
+            command -v nginx || (apt-get update -qq && apt-get install -y nginx)
+            echo 'Prerequisites done'
+          "
 
-            # ── Directories ──────────────────────────────────────────────
-            mkdir -p /var/www/lonavala.fun/frontend
-            mkdir -p /var/www/lonavala.fun/backend
-            mkdir -p /var/www/certbot
-
-            # ── Node.js (skip if already installed) ──────────────────────
-            if ! command -v node &> /dev/null; then
-              echo "Installing Node.js 20..."
-              curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-              apt-get install -y nodejs
-            else
-              echo "Node already installed: $(node --version)"
-            fi
-
-            # ── PM2 (skip if already installed) ──────────────────────────
-            if ! command -v pm2 &> /dev/null; then
-              echo "Installing PM2..."
-              npm install -g pm2
-              pm2 startup systemd -u root --hp /root | tail -1 | bash || true
-            else
-              echo "PM2 already installed: $(pm2 --version)"
-            fi
-
-            # ── Nginx (skip if already installed) ────────────────────────
-            if ! command -v nginx &> /dev/null; then
-              echo "Installing Nginx..."
-              apt-get update -qq
-              apt-get install -y nginx
-              systemctl enable nginx
-              systemctl start nginx
-            else
-              echo "Nginx already installed: $(nginx -v 2>&1)"
-            fi
-
-            # ── Certbot (skip if already installed) ──────────────────────
-            if ! command -v certbot &> /dev/null; then
-              echo "Installing Certbot..."
-              apt-get install -y certbot python3-certbot-nginx
-            else
-              echo "Certbot already installed: $(certbot --version)"
-            fi
-
-            # ── Nginx config for lonavala.fun ─────────────────────────────
-            cat > /etc/nginx/sites-available/lonavala.fun << 'NGINX'
-          # HTTP → HTTPS redirect
+      # ── 7. Write Nginx Config on VPS ──────────────────────────────────────
+      - name: Configure Nginx
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            cat > /etc/nginx/sites-available/lonavala.fun << 'EOF'
           server {
               listen 80;
-              server_name lonavala.fun www.lonavala.fun api.lonavala.fun;
-              location /.well-known/acme-challenge/ {
-                  root /var/www/certbot;
-              }
-              location / {
-                  return 301 https://$host$request_uri;
-              }
-          }
-
-          # Frontend (main site)
-          server {
-              listen 443 ssl;
               server_name lonavala.fun www.lonavala.fun;
-
-              ssl_certificate /etc/letsencrypt/live/lonavala.fun/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/lonavala.fun/privkey.pem;
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers HIGH:!aNULL:!MD5;
-
               root /var/www/lonavala.fun/frontend;
               index index.html;
-
-              client_max_body_size 20M;
-
               location / {
-                  try_files $uri $uri/ /index.html;
+                  try_files \$uri \$uri/ /index.html;
               }
-
               gzip on;
-              gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+              gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
           }
-
-          # Backend API
           server {
-              listen 443 ssl;
+              listen 80;
               server_name api.lonavala.fun;
-
-              ssl_certificate /etc/letsencrypt/live/lonavala.fun/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/lonavala.fun/privkey.pem;
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers HIGH:!aNULL:!MD5;
-
-              client_max_body_size 20M;
-
               location / {
-                  proxy_pass http://127.0.0.1:5000;
+                  proxy_pass http://127.0.0.1:5001;
                   proxy_http_version 1.1;
-                  proxy_set_header Upgrade $http_upgrade;
-                  proxy_set_header Connection 'upgrade';
-                  proxy_set_header Host $host;
-                  proxy_set_header X-Real-IP $remote_addr;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto https;
-                  proxy_cache_bypass $http_upgrade;
+                  proxy_set_header Upgrade \$http_upgrade;
+                  proxy_set_header Connection upgrade;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+                  proxy_cache_bypass \$http_upgrade;
               }
           }
-          NGINX
-
-            # Enable site
+          EOF
             ln -sf /etc/nginx/sites-available/lonavala.fun /etc/nginx/sites-enabled/lonavala.fun
+            rm -f /etc/nginx/sites-enabled/default
+            nginx -t && systemctl reload nginx
+            echo 'Nginx configured'
+          "
 
-            # Test nginx config
-            nginx -t
-
-            # ── SSL Certificate (only if not already issued) ──────────────
-            if [ ! -f /etc/letsencrypt/live/lonavala.fun/fullchain.pem ]; then
-              echo "Getting SSL certificate..."
-              # Temporarily serve HTTP for certbot challenge
-              nginx -s reload
-              certbot certonly --webroot \
-                -w /var/www/certbot \
-                -d lonavala.fun \
-                -d www.lonavala.fun \
-                -d api.lonavala.fun \
-                --email admin@lonavala.fun \
-                --agree-tos \
-                --non-interactive
-            else
-              echo "SSL certificate already exists"
-            fi
-
-            nginx -s reload
-            echo "VPS setup complete!"
-          ENDSSH
-
-      # ── 7. Deploy Frontend ────────────────────────────────────────────────
+      # ── 8. Deploy Frontend ────────────────────────────────────────────────
       - name: Deploy Frontend
         run: |
           rsync -az --delete \
             frontend/dist/ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/lonavala.fun/frontend/
 
-      # ── 8. Deploy Backend ─────────────────────────────────────────────────
+      # ── 9. Deploy Backend ─────────────────────────────────────────────────
       - name: Deploy Backend
         run: |
           scp backend.tar.gz \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/lonavala.fun/backend.tar.gz
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/backend.tar.gz
 
-      # ── 9. Start/Restart Backend ──────────────────────────────────────────
+      # ── 10. Extract & Restart Backend ─────────────────────────────────────
       - name: Restart Backend
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             set -e
             cd /var/www/lonavala.fun/backend
-
-            # Extract new backend
-            tar -xzf /var/www/lonavala.fun/backend.tar.gz -C .
-            rm /var/www/lonavala.fun/backend.tar.gz
-
-            # Install production dependencies
+            tar -xzf /tmp/backend.tar.gz --strip-components=1 -C .
+            rm /tmp/backend.tar.gz
             npm install --omit=dev
-
-            # Detect entry file (index.js > server.js > app.js)
-            if [ -f "index.js" ]; then
-              ENTRY="index.js"
-            elif [ -f "server.js" ]; then
-              ENTRY="server.js"
-            elif [ -f "app.js" ]; then
-              ENTRY="app.js"
-            else
-              echo "ERROR: No entry file found (index.js / server.js / app.js)"
-              exit 1
-            fi
-
-            echo "Starting backend with entry: $ENTRY"
-
-            # Restart or start PM2 process
-            pm2 restart lonavala-backend 2>/dev/null || \
-              pm2 start $ENTRY \
-                --name lonavala-backend \
-                --env production \
-                --max-memory-restart 512M \
-                --restart-delay 3000 \
-                --max-restarts 10
-
+            pm2 restart lonavala-backend 2>/dev/null || pm2 start index.js --name lonavala-backend
             pm2 save
             pm2 list
-          ENDSSH
+            echo 'Backend deployed!'
+          "
 
-      # ── 10. Health Check ──────────────────────────────────────────────────
+      # ── 11. Health Check ──────────────────────────────────────────────────
       - name: Health Check
         run: |
           sleep 5
-          echo "Checking https://lonavala.fun ..."
-          curl -sSf -o /dev/null -w "Frontend status: %{http_code}\n" https://lonavala.fun || echo "Frontend not ready yet (SSL may be provisioning)"
-          echo "Checking https://api.lonavala.fun ..."
-          curl -sSf -o /dev/null -w "API status: %{http_code}\n" https://api.lonavala.fun/health 2>/dev/null || \
-          curl -sSf -o /dev/null -w "API status: %{http_code}\n" https://api.lonavala.fun || \
-          echo "API check done"
+          curl -so /dev/null -w "lonavala.fun → HTTP %{http_code}\n" http://lonavala.fun || true
+          curl -so /dev/null -w "api.lonavala.fun → HTTP %{http_code}\n" http://api.lonavala.fun || true
