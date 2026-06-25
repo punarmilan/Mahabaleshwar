@@ -134,6 +134,18 @@ jobs:
             echo 'Nginx configured'
           "
 
+      # ── 7.5 Debug Nginx VPS ───────────────────────────────────────────────
+      - name: Debug Nginx VPS
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            echo '=== Nginx Config Files ==='
+            ls -la /etc/nginx/sites-enabled/
+            echo '=== Content of /etc/nginx/sites-enabled/lonavala.fun ==='
+            cat /etc/nginx/sites-enabled/lonavala.fun
+            echo '=== Directory structure of /var/www/lonavala.fun ==='
+            ls -R /var/www/lonavala.fun
+          "
+
       # ── 8. Deploy Frontend ────────────────────────────────────────────────
       - name: Deploy Frontend
         run: |
