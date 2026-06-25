@@ -1,15 +1,25 @@
 === Nginx Config Files ===
 total 8
-drwxr-xr-x 2 root root 4096 Jun 25 12:23 .
-drwxr-xr-x 8 root root 4096 Jun 23 06:11 ..
+drwxr-xr-x 2 root root 4096 Jun 25 12:41 .
+drwxr-xr-x 8 root root 4096 Jun 25 12:32 ..
+lrwxrwxrwx 1 root root   45 Jun 25 12:33 admin.lonavala.fun -> /etc/nginx/sites-available/admin.lonavala.fun
 lrwxrwxrwx 1 root root   38 Jun  1 09:58 itjobx.conf -> /etc/nginx/sites-available/itjobx.conf
-lrwxrwxrwx 1 root root   39 Jun 25 12:23 lonavala.fun -> /etc/nginx/sites-available/lonavala.fun
+lrwxrwxrwx 1 root root   39 Jun 25 12:41 lonavala.fun -> /etc/nginx/sites-available/lonavala.fun
 lrwxrwxrwx 1 root root   37 Jun  2 08:01 punarmilan -> /etc/nginx/sites-available/punarmilan
 lrwxrwxrwx 1 root root   36 Jun  1 09:52 shiftride -> /etc/nginx/sites-available/shiftride
 === Content of /etc/nginx/sites-enabled/lonavala.fun ===
 server {
     listen 80;
     server_name lonavala.fun www.lonavala.fun;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name lonavala.fun www.lonavala.fun;
+    ssl_certificate /etc/letsencrypt/live/lonavala.fun/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lonavala.fun/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     root /var/www/lonavala.fun/frontend;
     index index.html;
     location / {
@@ -21,6 +31,15 @@ server {
 server {
     listen 80;
     server_name admin.lonavala.fun;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name admin.lonavala.fun;
+    ssl_certificate /etc/letsencrypt/live/lonavala.fun/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lonavala.fun/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     root /var/www/lonavala.fun/admin;
     index index.html;
     location / {
