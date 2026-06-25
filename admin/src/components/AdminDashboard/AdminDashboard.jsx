@@ -46,7 +46,7 @@ const AdminDashboard = () => {
                      activeTab === 'users' ? 'admin/users' : 'bookings/all';
     
     try {
-      const response = await fetch(`http://localhost:5001/api/${endpoint}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/${endpoint}`, {
         headers: { 'x-auth-token': token }
       });
 
@@ -74,7 +74,7 @@ const AdminDashboard = () => {
   const handleUpdatePrice = async (id, newPrice) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/property/${id}/price`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/property/${id}/price`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ const AdminDashboard = () => {
   const handleStatusUpdate = async (id, status) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/property/${id}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/property/${id}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

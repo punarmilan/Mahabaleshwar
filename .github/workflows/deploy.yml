@@ -34,6 +34,17 @@ jobs:
         env:
           VITE_API_URL: https://api.lonavala.fun
 
+      # ── 3.5 Admin Build ───────────────────────────────────────────────────
+      - name: Install Admin Dependencies
+        working-directory: admin
+        run: npm install
+
+      - name: Build Admin
+        working-directory: admin
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.lonavala.fun
+
       # ── 4. Package Backend ────────────────────────────────────────────────
       - name: Package Backend
         run: |
@@ -56,7 +67,7 @@ jobs:
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             set -e
-            mkdir -p /var/www/lonavala.fun/frontend /var/www/lonavala.fun/backend
+            mkdir -p /var/www/lonavala.fun/frontend /var/www/lonavala.fun/backend /var/www/lonavala.fun/admin
             command -v node || (curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs)
             command -v pm2 || npm install -g pm2
             command -v nginx || (apt-get update -qq && apt-get install -y nginx)
@@ -72,6 +83,17 @@ jobs:
               listen 80;
               server_name lonavala.fun www.lonavala.fun;
               root /var/www/lonavala.fun/frontend;
+              index index.html;
+              location / {
+                  try_files \$uri \$uri/ /index.html;
+              }
+              gzip on;
+              gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
+          }
+          server {
+              listen 80;
+              server_name admin.lonavala.fun;
+              root /var/www/lonavala.fun/admin;
               index index.html;
               location / {
                   try_files \$uri \$uri/ /index.html;
@@ -108,6 +130,13 @@ jobs:
             frontend/dist/ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/lonavala.fun/frontend/
 
+      # ── 8.5 Deploy Admin ──────────────────────────────────────────────────
+      - name: Deploy Admin
+        run: |
+          rsync -az --delete \
+            admin/dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/lonavala.fun/admin/
+
       # ── 9. Deploy Backend ─────────────────────────────────────────────────
       - name: Deploy Backend
         run: |
@@ -134,4 +163,5 @@ jobs:
         run: |
           sleep 5
           curl -so /dev/null -w "lonavala.fun HTTP %{http_code}\n" http://lonavala.fun || true
+          curl -so /dev/null -w "admin.lonavala.fun HTTP %{http_code}\n" http://admin.lonavala.fun || true
           curl -so /dev/null -w "api.lonavala.fun HTTP %{http_code}\n" http://api.lonavala.fun || true
