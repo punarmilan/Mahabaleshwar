@@ -1,0 +1,44 @@
+name: Deploy Lonavala.fun
+on:
+  push:
+    branches: [main, master]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build Frontend
+        run: cd frontend && npm install && VITE_API_URL=https://api.lonavala.fun npm run build
+      - name: Package Backend
+        run: tar -czf backend.tar.gz -C backend --exclude=node_modules --exclude=.env .
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Deploy Frontend
+        run: rsync -az --delete frontend/dist/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/lonavala.fun/frontend/
+      - name: Deploy Backend
+        run: scp backend.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/lonavala.fun/backend.tar.gz
+      - name: Restart Backend
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          set -e
+          cd /var/www/lonavala.fun/backend
+          tar -xzf /var/www/lonavala.fun/backend.tar.gz -C .
+          rm /var/www/lonavala.fun/backend.tar.gz
+          npm install --omit=dev
+          ENTRY=$(ls index.js server.js app.js 2>/dev/null | head -1)
+          [ -z "$ENTRY" ] && echo "No entry file!" && exit 1
+          pm2 restart lonavala-backend 2>/dev/null || pm2 start $ENTRY --name lonavala-backend --env production
+          pm2 save && pm2 list
+          EOF
+      - name: Health Check
+        run: |
+          sleep 5
+          curl -o /dev/null -w "Frontend: %{http_code}\n" https://lonavala.fun || true
+          curl -o /dev/null -w "API: %{http_code}\n" https://api.lonavala.fun || true

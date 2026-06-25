@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import PropertyCard from '../PropertyCard/PropertyCard';
 import { properties } from '../../data/mockData';
 import './PropertyGrid.css';
+import { API_BASE_URL } from '../../config';
+
 
 const PropertyGrid = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -10,7 +12,7 @@ const PropertyGrid = () => {
   React.useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/properties/all');
+        const response = await fetch(`${API_BASE_URL}/api/properties/all`);
         const data = await response.json();
         if (response.ok) {
           // Map MongoDB data to match PropertyCard format

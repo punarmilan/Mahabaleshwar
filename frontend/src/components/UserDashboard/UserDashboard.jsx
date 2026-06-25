@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserDashboard.css';
 import bgImage from '../../assets/hillstationhome (1).jpg';
+import { API_BASE_URL } from '../../config';
+
 
 const UserDashboard = () => {
   const [bookings, setBookings] = useState([]);
@@ -32,7 +34,7 @@ const UserDashboard = () => {
 
   const fetchOwnerProperties = async (token) => {
     try {
-      const response = await fetch('http://localhost:5001/api/properties/my-properties', {
+      const response = await fetch(`${API_BASE_URL}/api/properties/my-properties`, {
         headers: { 'x-auth-token': token }
       });
       const data = await response.json();
@@ -59,9 +61,9 @@ const UserDashboard = () => {
     const apiToken = token || localStorage.getItem('token');
     if (!apiToken) return;
 
-    let url = 'http://localhost:5001/api/bookings/my-bookings';
+    let url = `${API_BASE_URL}/api/bookings/my-bookings`;
     if (target !== 'personal') {
-      url = `http://localhost:5001/api/bookings/property/${target}`;
+      url = `${API_BASE_URL}/api/bookings/property/${target}`;
     }
 
     try {
@@ -93,7 +95,7 @@ const UserDashboard = () => {
     const token = localStorage.getItem('token');
     try {
       console.log('Attempting to cancel booking:', bookingId);
-      const response = await fetch(`http://127.0.0.1:5001/api/bookings/cancel/${bookingId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/cancel/${bookingId}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
