@@ -7,6 +7,8 @@ const UserDashboard = () => {
   const [bookings, setBookings] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [properties, setProperties] = useState([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState('personal');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,14 +20,53 @@ const UserDashboard = () => {
       return;
     }
 
-    setUser(JSON.parse(userData));
-    fetchMyBookings(token);
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+
+    if (parsedUser.role === 'owner') {
+      fetchOwnerProperties(token);
+    } else {
+      fetchBookings('personal', token);
+    }
   }, [navigate]);
 
-  const fetchMyBookings = async (token) => {
+  const fetchOwnerProperties = async (token) => {
     try {
-      const response = await fetch('http://localhost:5001/api/bookings/my-bookings', {
+      const response = await fetch('http://localhost:5001/api/properties/my-properties', {
         headers: { 'x-auth-token': token }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setProperties(data);
+        if (data.length > 0) {
+          setSelectedPropertyId(data[0]._id);
+          fetchBookings(data[0]._id, token);
+        } else {
+          setSelectedPropertyId('personal');
+          fetchBookings('personal', token);
+        }
+      } else {
+        fetchBookings('personal', token);
+      }
+    } catch (err) {
+      console.error('Error fetching properties:', err);
+      fetchBookings('personal', token);
+    }
+  };
+
+  const fetchBookings = async (target, token) => {
+    setLoading(true);
+    const apiToken = token || localStorage.getItem('token');
+    if (!apiToken) return;
+
+    let url = 'http://localhost:5001/api/bookings/my-bookings';
+    if (target !== 'personal') {
+      url = `http://localhost:5001/api/bookings/property/${target}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers: { 'x-auth-token': apiToken }
       });
       const data = await response.json();
       if (response.ok) {
@@ -63,7 +104,7 @@ const UserDashboard = () => {
       
       if (response.ok) {
         alert('Booking cancelled successfully.');
-        fetchMyBookings(token); // Refresh list
+        fetchBookings(selectedPropertyId, token); // Refresh list
       } else {
         alert(data.msg || 'Cancellation failed.');
       }
@@ -110,6 +151,11 @@ const UserDashboard = () => {
                 <div className="booking-list-header">
                   <h2>{booking.property?.name || 'Deleted Property'}</h2>
                   <p className="location"><i className="fas fa-map-marker-alt"></i> {booking.property?.location || 'Unknown Location'}</p>
+                  {selectedPropertyId !== 'personal' && booking.user && (
+                    <div className="guest-info">
+                      <span className="guest-label">Guest:</span> {booking.user.name} ({booking.user.email})
+                    </div>
+                  )}
                 </div>
                 
                 <div className="booking-list-dates">
@@ -132,7 +178,7 @@ const UserDashboard = () => {
                 </div>
                 <div className="action-buttons">
                   <button className="view-details-btn">View Receipt</button>
-                  {!isHistoryOrCancelled && booking.status !== 'cancelled' && (
+                  {selectedPropertyId === 'personal' && !isHistoryOrCancelled && booking.status !== 'cancelled' && (
                     (() => {
                       const diffHours = Math.abs(new Date() - new Date(booking.createdAt)) / 36e5;
                       return diffHours <= 24 ? (
@@ -186,6 +232,34 @@ const UserDashboard = () => {
           <h1>Your Luxury Dashboard</h1>
           <p>Manage your bookings, cancellations, and history</p>
         </header>
+
+        {user?.role === 'owner' && properties.length > 0 && (
+          <div className="property-selector-container glass-morphism">
+            <span className="property-selector-label">
+              <i className="fas fa-hotel"></i> Dashboard Mode:
+            </span>
+            <select
+              value={selectedPropertyId}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedPropertyId(val);
+                fetchBookings(val);
+              }}
+              className="property-dropdown"
+            >
+              <optgroup label="Guest Mode">
+                <option value="personal">My Personal Stays</option>
+              </optgroup>
+              <optgroup label="Host Mode (Properties)">
+                {properties.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name} ({p.location})
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+        )}
 
         {/* Quick Nav Tabs */}
         <div className="dashboard-tabs-nav glass-morphism">

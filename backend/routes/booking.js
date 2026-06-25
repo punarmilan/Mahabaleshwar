@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Booking = require('../models/Booking');
+const Property = require('../models/Property');
 const auth = require('../middleware/auth');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
@@ -105,6 +106,32 @@ router.get('/my-bookings', auth, async (req, res) => {
     const bookings = await Booking.find({ user: req.user.id })
       .populate('property')
       .sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Get bookings for a specific property (Protected - Owners/Admin only)
+router.get('/property/:propertyId', auth, async (req, res) => {
+  try {
+    const propertyId = req.params.propertyId;
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      return res.status(404).json({ msg: 'Property not found' });
+    }
+    
+    // Check if the current user is the owner of the property or an admin
+    if (property.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ msg: 'Access denied: You are not the owner of this property' });
+    }
+
+    const bookings = await Booking.find({ property: propertyId })
+      .populate('user', 'name email')
+      .populate('property')
+      .sort({ createdAt: -1 });
+      
     res.json(bookings);
   } catch (err) {
     console.error(err.message);
