@@ -1,18 +1,27 @@
 === Nginx Config Files ===
 total 8
-drwxr-xr-x 2 root root 4096 Jun 25 12:41 .
+drwxr-xr-x 2 root root 4096 Jun 25 12:48 .
 drwxr-xr-x 8 root root 4096 Jun 25 12:32 ..
-lrwxrwxrwx 1 root root   45 Jun 25 12:33 admin.lonavala.fun -> /etc/nginx/sites-available/admin.lonavala.fun
 lrwxrwxrwx 1 root root   38 Jun  1 09:58 itjobx.conf -> /etc/nginx/sites-available/itjobx.conf
-lrwxrwxrwx 1 root root   39 Jun 25 12:41 lonavala.fun -> /etc/nginx/sites-available/lonavala.fun
+lrwxrwxrwx 1 root root   39 Jun 25 12:48 lonavala.fun -> /etc/nginx/sites-available/lonavala.fun
 lrwxrwxrwx 1 root root   37 Jun  2 08:01 punarmilan -> /etc/nginx/sites-available/punarmilan
 lrwxrwxrwx 1 root root   36 Jun  1 09:52 shiftride -> /etc/nginx/sites-available/shiftride
 === Content of /etc/nginx/sites-enabled/lonavala.fun ===
+# Unified HTTP block - Handles certbot challenge and redirects all HTTP to HTTPS
 server {
     listen 80;
-    server_name lonavala.fun www.lonavala.fun;
-    return 301 https://$host$request_uri;
+    server_name lonavala.fun www.lonavala.fun api.lonavala.fun admin.lonavala.fun;
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }
+
+# HTTPS: Frontend Main Site
 server {
     listen 443 ssl;
     server_name lonavala.fun www.lonavala.fun;
@@ -28,11 +37,8 @@ server {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
 }
-server {
-    listen 80;
-    server_name admin.lonavala.fun;
-    return 301 https://$host$request_uri;
-}
+
+# HTTPS: Admin Portal
 server {
     listen 443 ssl;
     server_name admin.lonavala.fun;
@@ -48,9 +54,15 @@ server {
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
 }
+
+# HTTPS: Backend API Proxy
 server {
-    listen 80;
+    listen 443 ssl;
     server_name api.lonavala.fun;
+    ssl_certificate /etc/letsencrypt/live/lonavala.fun/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lonavala.fun/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     location / {
         proxy_pass http://127.0.0.1:5001;
         proxy_http_version 1.1;
