@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './AdminDashboard.css';
+import { API_BASE_URL } from '../../config';
+
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('properties');
@@ -21,7 +23,7 @@ const AdminDashboard = () => {
                      activeTab === 'users' ? 'admin/users' : 'bookings/all';
     
     try {
-      const response = await fetch(`http://localhost:5001/api/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/${endpoint}`, {
         headers: { 'x-auth-token': token }
       });
       const result = await response.json();
@@ -41,7 +43,7 @@ const AdminDashboard = () => {
   const handleUpdatePrice = async (id, newPrice) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/property/${id}/price`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/property/${id}/price`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +63,7 @@ const AdminDashboard = () => {
   const handleStatusUpdate = async (id, status) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5001/api/admin/property/${id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/property/${id}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

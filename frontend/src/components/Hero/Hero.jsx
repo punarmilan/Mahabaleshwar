@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Hero.css';
+import { API_BASE_URL } from '../../config';
+
 import bg1 from '../../assets/hillstationhome (1).jpg';
 import bg2 from '../../assets/hillstationhome (2).jpg';
 import bg3 from '../../assets/hillstationhome (3).jpg';
@@ -20,7 +22,7 @@ const Hero = () => {
     // Fetch registered hotels
     const fetchHotels = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/properties/all');
+        const response = await fetch(`${API_BASE_URL}/api/properties/all`);
         const data = await response.json();
         if (response.ok) {
           setHotels(data);

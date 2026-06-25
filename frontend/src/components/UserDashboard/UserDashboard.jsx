@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserDashboard.css';
 import bgImage from '../../assets/hillstationhome (1).jpg';
+import { API_BASE_URL } from '../../config';
+
 
 const UserDashboard = () => {
   const [bookings, setBookings] = useState([]);
@@ -22,9 +24,9 @@ const UserDashboard = () => {
     fetchMyBookings(token);
   }, [navigate]);
 
-  const fetchMyBookings = async (token) => {
+  async function fetchMyBookings(token) {
     try {
-      const response = await fetch('http://localhost:5001/api/bookings/my-bookings', {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
         headers: { 'x-auth-token': token }
       });
       const data = await response.json();
@@ -36,7 +38,7 @@ const UserDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token');

@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './RegistrationForm.css';
+import { API_BASE_URL } from '../../config';
+
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -53,7 +55,7 @@ const RegistrationForm = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5001/api/properties/add', {
+      const response = await fetch(`${API_BASE_URL}/api/properties/add`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

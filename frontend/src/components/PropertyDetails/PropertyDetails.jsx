@@ -4,6 +4,8 @@ import Navbar from '../Navbar/Navbar';
 import Footer from '../Footer/Footer';
 import './PropertyDetails.css';
 import { properties as mockProperties } from '../../data/mockData';
+import { API_BASE_URL } from '../../config';
+
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -59,7 +61,7 @@ const PropertyDetails = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:5001/api/properties/${id}`);
+        const response = await fetch(`${API_BASE_URL}/api/properties/${id}`);
         if (response.ok) {
           const data = await response.json();
           setProperty(data);
@@ -105,7 +107,7 @@ const PropertyDetails = () => {
     try {
       setIsProcessing(true);
       // Create order on server (marking as fake for now to ensure it works)
-      const response = await fetch('http://localhost:5001/api/bookings', {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +160,7 @@ const PropertyDetails = () => {
     const token = localStorage.getItem('token');
     try {
       console.log('Confirming simulated payment for order:', pendingData.order_id);
-      const response = await fetch('http://localhost:5001/api/bookings/verify', {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
