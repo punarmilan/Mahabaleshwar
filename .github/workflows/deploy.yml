@@ -138,13 +138,19 @@ jobs:
       - name: Debug Nginx VPS
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
-            echo '=== Nginx Config Files ==='
-            ls -la /etc/nginx/sites-enabled/
-            echo '=== Content of /etc/nginx/sites-enabled/lonavala.fun ==='
-            cat /etc/nginx/sites-enabled/lonavala.fun
-            echo '=== Directory structure of /var/www/lonavala.fun ==='
-            ls -R /var/www/lonavala.fun
+            echo '=== Nginx Config Files ===' > /tmp/vps_debug.txt
+            ls -la /etc/nginx/sites-enabled/ >> /tmp/vps_debug.txt
+            echo '=== Content of /etc/nginx/sites-enabled/lonavala.fun ===' >> /tmp/vps_debug.txt
+            cat /etc/nginx/sites-enabled/lonavala.fun >> /tmp/vps_debug.txt
+            echo '=== Directory structure of /var/www/lonavala.fun ===' >> /tmp/vps_debug.txt
+            ls -R /var/www/lonavala.fun >> /tmp/vps_debug.txt
           "
+          scp ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/vps_debug.txt ./vps_debug.txt
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add vps_debug.txt
+          git commit -m "debug: save vps debug info [skip ci]" || true
+          git push origin main || true
 
       # ── 8. Deploy Frontend ────────────────────────────────────────────────
       - name: Deploy Frontend
