@@ -91,7 +91,7 @@ const Register = () => {
             >
               <option value="user">Traveler</option>
               <option value="owner">Property Owner</option>
-              <option value="admin">Administrator</option>
+
             </select>
           </div>
 

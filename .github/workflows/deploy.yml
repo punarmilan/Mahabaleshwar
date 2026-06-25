@@ -133,5 +133,5 @@ jobs:
       - name: Health Check
         run: |
           sleep 5
-          curl -so /dev/null -w "lonavala.fun → HTTP %{http_code}\n" http://lonavala.fun || true
-          curl -so /dev/null -w "api.lonavala.fun → HTTP %{http_code}\n" http://api.lonavala.fun || true
+          curl -so /dev/null -w "lonavala.fun HTTP %{http_code}\n" http://lonavala.fun || true
+          curl -so /dev/null -w "api.lonavala.fun HTTP %{http_code}\n" http://api.lonavala.fun || true

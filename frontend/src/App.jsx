@@ -10,11 +10,37 @@ import RegistrationForm from './components/RegistrationForm/RegistrationForm';
 import Footer from './components/Footer/Footer';
 import SignIn from './components/SignIn/SignIn';
 import Register from './components/Register/Register';
-import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import PropertyDetails from './components/PropertyDetails/PropertyDetails';
 import UserDashboard from './components/UserDashboard/UserDashboard';
 import './App.css';
 import 'lenis/dist/lenis.css';
+
+const AdminRedirect = () => {
+  useEffect(() => {
+    window.location.replace('http://localhost:5174');
+  }, []);
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      backgroundColor: '#0b110f',
+      color: '#f2ece4',
+      fontFamily: 'Inter, sans-serif',
+      textAlign: 'center',
+      padding: '20px'
+    }}>
+      <h2 style={{ fontFamily: 'Outfit, sans-serif', color: '#d4af37', marginBottom: '10px' }}>
+        Redirecting to Secure Admin Portal
+      </h2>
+      <p style={{ color: '#859690', fontSize: '0.9rem' }}>
+        Please wait while we establish a secure link...
+      </p>
+    </div>
+  );
+};
 
 const Home = () => {
   const storedUser = localStorage.getItem('user');
@@ -65,7 +91,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={<AdminRedirect />} />
           <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/dashboard" element={<UserDashboard />} />
         </Routes>
